@@ -17,7 +17,7 @@ variable memory {
 }
 
 variable fraction {
-  default = 5
+  default = 20
 }
 
 variable storage {
@@ -29,11 +29,7 @@ variable ssh_key_private {
 }
 
 variable ansible_user {
-  default = "mtuktarov"
-}
-
-variable static_ip_address{
-    default = ["84.201.129.94", "84.201.156.54"]
+  default = "root"
 }
 
 variable ansible_playbook {

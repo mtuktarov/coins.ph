@@ -20,4 +20,5 @@
     regexp: "^127.0.0.1"
     line: "{{ item }}"
     state: present
-   with_items: "{{ hosts_lines }}"
+  with_items:
+  - "{{ hosts_lines }}"

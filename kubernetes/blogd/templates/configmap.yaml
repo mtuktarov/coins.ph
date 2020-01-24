@@ -11,7 +11,7 @@ data:
     }
     server {
       listen 0.0.0.0:80;
-      server_name mtuktarov.com www.mtuktarov.com;
+      server_name mtuktarov.com www.mtuktarov.com blog.mtuktarov.com;
       client_max_body_size 100M;
       root /opt/blogd;
       include uwsgi_params;
@@ -43,6 +43,7 @@ data:
         return 200;
       }
     }
+  branch: {{ .Values.branch | quote }}
   djangoDebug: {{ .Values.django.debug | quote }}
   djangoDbName: {{ .Values.django.db.name | quote }}
   djangoDbHost: {{ .Values.django.db.host | quote }}
@@ -51,7 +52,16 @@ data:
   djangoEmailPort: {{ .Values.django.smtp_email.port | quote }}
   djangoSiteDomainName: {{ .Values.django.siteDomainName | quote }}
   djangoAutomaticMigrations: {{ .Values.django.db.automaticMigrations | quote }}
-  djangoDisableCache: {{ .Values.django.disableCache | quote }}
+  actionsDisableCache: {{ .Values.actions.disable_cache | quote }}
+  actionsWait_postgres:  {{ .Values.actions.wait_postgres | quote }}
+  actionsAdd_superuser:  {{ .Values.actions.add_superuser | quote }}
+  actionsConfigure_groups: {{ .Values.actions.configure_groups | quote }}
+  actionsRename_site: {{ .Values.actions.rename_site | quote }}
+  actionsMakemigrations: {{ .Values.actions.rename_site | quote }}
+  actionsMigrate:  {{ .Values.actions.migrate | quote }}
+  actionsCollect_static: {{ .Values.actions.collect_static | quote }}
+  actionsCompress_static: {{ .Values.actions.compress_static | quote }}
+  uwsgi_params:  {{ .Values.uwsgi_params | quote }}
 
 ---
 

@@ -130,3 +130,4 @@ migrations/
 **/.vagrant
 **/*.crt
 **/*.key
+**/*.tfstate

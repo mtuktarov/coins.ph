@@ -1,4 +1,4 @@
 k8s_pkgs: ["kubelet", "kubeadm", "kubectl"]
 system_settings_locale: en_US.utf8
-ansible_user: mtuktarov
+ansible_user: root
 

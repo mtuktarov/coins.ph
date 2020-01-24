@@ -23,6 +23,10 @@ spec:
               path: nginx.conf
       - name: shared-data
         emptyDir: {}
+      - name: media-volume
+        hostPath:
+          path: /data_media
+          type: Directory
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -30,10 +34,13 @@ spec:
       initContainers:
       - name: init-storage
         image: alpine/git
-        command: ['sh', '-c', 'chown -R 101:101 /opt/blogd && git clone --single-branch --branch django-todo https://github.com/mtuktarov/mtuktarov.ru.git /opt/blogd && mkdir -p /opt/blogd/sockets && mkdir -p /opt/blogd/media && mkdir -p /opt/blogd/uploads && chown -R 101:101 /opt/ && chmod 775 -R /opt']
+        command: ['sh', '-c', 'chown -R 101:101 /opt /media']
         volumeMounts:
         - name: shared-data
           mountPath: /opt/blogd/
+          readOnly: false
+        - name: media-volume
+          mountPath: /media
           readOnly: false
 
       serviceAccountName: {{ include "blogd.serviceAccountName" . }}
@@ -46,36 +53,31 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-          - name: DJANGO_DEBUG
+          - name: BRANCH
             valueFrom:
               configMapKeyRef:
                 name: blogd
-                key: djangoDebug
-          - name: DJANGO_DB_HOST
+                key: branch
+          - name: PGHOST
             valueFrom:
               configMapKeyRef:
                 name: blogd
                 key: djangoDbHost
-          - name: DJANGO_DB_NAME
+          - name: PGNAME
             valueFrom:
               configMapKeyRef:
                 name: blogd
                 key: djangoDbName
-          - name: DJANGO_DB_USER
+          - name: PGUSER
             valueFrom:
               secretKeyRef:
                 name: blogd
                 key: djangoDbUser
-          - name: DJANGO_DB_PASSWORD
+          - name: PGPASSWORD
             valueFrom:
               secretKeyRef:
                 name: blogd
                 key: djangoDbPassword
-          - name: AUTOMATIC_MIGRATIONS
-            valueFrom:
-              configMapKeyRef:
-                name: blogd
-                key: djangoAutomaticMigrations
           - name: DJANGO_SITE_DOMAIN_NAME
             valueFrom:
               configMapKeyRef:
@@ -100,7 +102,7 @@ spec:
             valueFrom:
               configMapKeyRef:
                 name: blogd
-                key: djangoDisableCache
+                key: actionsDisableCache
           - name: DJANGO_EMAIL_HOST
             valueFrom:
               configMapKeyRef:
@@ -121,11 +123,64 @@ spec:
               secretKeyRef:
                 name: blogd
                 key: djangoEmailPassword
+          - name: DJANGO_DISABLE_CACHE
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsDisableCache
+          - name: WAIT_FOR_POSTGRES
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsWait_postgres
+          - name: ADD_SUPERUSER
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsAdd_superuser
+          - name: CONFIGURE_GROUPS
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsConfigure_groups
+          - name: RENAME_SITE
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsRename_site
+          - name: MAKEMIGRATIONS
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsMakemigrations
+          - name: MIGRATE
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsMigrate
+          - name: COLLECT_STATIC
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsCollect_static
+          - name: COMPRESS_STATIC
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: actionsCompress_static
+          - name: UWSGI_PARAMS
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: uwsgi_params
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
           - name: shared-data
             mountPath: /opt/blogd/
+            readOnly: false
+          - name: media-volume
+            mountPath: /media
             readOnly: false
 
         - name: nginx
@@ -153,6 +208,9 @@ spec:
             readOnly: false
           - name: shared-data
             mountPath: /opt/blogd/
+            readOnly: false
+          - name: media-volume
+            mountPath: /opt/blogd/media
             readOnly: false
       {{- with .Values.nodeSelector }}
       nodeSelector:

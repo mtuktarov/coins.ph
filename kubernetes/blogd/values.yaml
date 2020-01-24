@@ -32,13 +32,15 @@ securityContext: {}
   # runAsNonRoot: true
   # runAsUser: 1000
 
-## String to partially override postgresql.fullname template (will maintain the release name)
+## String to partially override blogd.fullname template (will maintain the release name)
 ##
 # nameOverride:
 
-## String to fully override postgresql.fullname template
+## String to fully override blogd.fullname template
 ##
 # fullnameOverride:
+# branch or tag to checkout
+branch: django-todo
 
 django:
   # switch Django to debug mode
@@ -49,23 +51,18 @@ django:
     host: postgresql
     name: blogd
     user: blogd
-    password:
-    # set this value to TRUE to run migrations upon pod launch
-    automaticMigrations: false
+    password: blogd
 
   # Django will automatically create superuser on the first migration run
   superuser:
     name: admin
-    email: admin@mtuktarov.com
-    password:
+    email: admin@blogd.com
+    password: 1qazXSW@
 
   # Django will create a django.contrib.sites.models.Site object on the first migration run
   # with the domain and name options equal to the below. It is an important option since
   # template links are widely generated reading domain value
-  siteDomainName: example.vom
-
-  # Django uses memcache for caching. Setting the below to true changes it to DummyCache
-  disableCache: false
+  siteDomainName: example.com
 
   # Django will uses the email config below to send emails
   smtp_email:
@@ -92,21 +89,34 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-resources:
-  limits:
-    cpu: 256m
-    memory: 256Mi
-  requests:
-    cpu: 256m
-    memory: 256Mi
+actions:
+  disable_cache: false
+  wait_postgres: true
+  add_superuser: true
+  configure_groups: true
+  rename_site: true
+  makemigrations: true
+  migrate: true
+  collect_static: true
+  compress_static: true
 
-nginxResources:
-  limits:
-    cpu: 128m
-    memory: 128Mi
-  requests:
-    cpu: 128m
-    memory: 128Mi
+
+uwsgi_params: "--ini ./blogd.ini"
+# resources:
+#   limits:
+#     cpu: 256m
+#     memory: 256Mi
+#   requests:
+#     cpu: 256m
+#     memory: 256Mi
+
+# nginxResources:
+#   limits:
+#     cpu: 128m
+#     memory: 128Mi
+#   requests:
+#     cpu: 128m
+#     memory: 128Mi
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
   # resources, such as Minikube. If you do want to specify resources, uncomment the following

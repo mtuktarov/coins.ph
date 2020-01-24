@@ -1,7 +1,7 @@
 //export YC_SERVICE_ACCOUNT_KEY_FILE=~/.yandex/key.json && terraform plan
 provider "yandex" {
-  token = "AgAAAAA8ZZ9OAATuwVW_K9Cvc0IotBZCawuEN1I"
-  cloud_id                 = "aje8i16hns9b9cgubosl"
+  token = ""
+  cloud_id                 = ""
   folder_id                = "b1gata3eq3dtejlf552k"
   zone                     = "ru-central1-a"
 }
