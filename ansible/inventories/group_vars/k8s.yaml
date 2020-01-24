@@ -1,0 +1,28 @@
+kernel_modules_conf_dir: "/etc/modules-load.d"
+kernel_load_file: "load-ansible.conf"
+kernel_modules:
+  - { name: br_netfilter,
+      autoload: true,
+      params: '',
+    }
+master_ip: "84.201.130.241"
+  # "{{ hostvars[groups['k8s_master'][0]]['ansible_default_ipv4'].address | default(groups['k8s_master'][0]) }}"
+kubeadmin_config: /etc/kubernetes/admin.conf
+init_opts: ""
+
+# Any other additional opts you want to add..
+kubeadm_opts: ""
+# For example:
+kubeadm_opts: '--apiserver-cert-extra-sans "{{ ansible_host }}"'
+
+network_interface: "{{ ansible_default_ipv4.interface }}"
+flannel_cni_opts: "--iface={{ network_interface }}"
+service_cidr: "10.96.0.0/24"
+pod_network_cidr: "10.244.0.0/24"
+docker_user: d3611340
+docker_token: 7eab8faf-4506-412c-9352-83a006104f14
+tmp_dir: /tmp/k8s_tmp
+hosts_lines:
+  - 84.201.130.241 kuber-master kuber-master.mtuktarov.com
+  - 84.201.133.99 kuber-slave kuber-slave.mtuktarov.com
+  - 127.0.0.1 localhost {{ inventory_hostname | default(fqdn) }}"

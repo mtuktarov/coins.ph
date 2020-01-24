@@ -1,0 +1,7 @@
+---
+- name: pb-setup_python.yml
+  hosts:  all
+  gather_facts: no
+  become: True
+  roles:
+    - { role: python }

@@ -1,0 +1,7 @@
+- import_playbook: pb-setup_python.yml
+- name: pb-common.yml
+  hosts: all
+  gather_facts: yes
+  become: True
+  roles:
+    - { role: common }

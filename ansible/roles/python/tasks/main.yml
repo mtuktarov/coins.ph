@@ -1,0 +1,62 @@
+- name: python/tasks/main.yml - Wait for remote system to become avaialble
+  tags: python
+  wait_for_connection:
+    delay: 5
+    timeout: 300
+
+- name: python/tasks/main.yml - check if centos or rhel
+  tags: python
+  raw: egrep -i "redhat|centos" /etc/*release
+  register: centos_dist
+
+- name: python/tasks/main.yml - check if python-apt installed debi
+  tags: python
+  raw: dpkg -l python-apt | awk '/ii  python-apt/{print $2}'
+  register: apt_python_installed
+  when:
+   - centos_dist.stdout_lines is defined and (centos_dist.stdout_lines|length) == 0
+
+- name: python/tasks/main.yml - apt-get update
+  tags: python
+  raw:  apt-get update
+  when:
+   - apt_python_installed.stdout_lines is defined
+   - (apt_python_installed.stdout_lines|length) == 0
+
+- name: python/tasks/main.yml - install python and python-apt
+  tags: python
+  raw:  DEBIAN_FRONTEND=noninteractive apt update; apt-get install -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confold' python3-apt python-apt -y
+  when:
+    - apt_python_installed.stdout_lines is defined
+    - (apt_python_installed.stdout_lines|length) == 0
+
+
+- name: python/tasks/main.yml - check if rpm python installed centos
+  tags: python
+  raw: rpm -q python3-3.6.8 python3-setuptools python-setuptools python3-pip python2-pip python3-libs
+  register: rpm_python_installed
+  when:
+   - centos_dist.stdout_lines is defined
+   - (centos_dist.stdout_lines|length) != 0
+  failed_when: rpm_python_installed.rc > 6
+
+- name: python/tasks/main.yml - check if ius package is installed
+  tags: python
+  raw: rpm -q ius-release
+  register: ius_installed
+  when:
+   - "'is not installed' in rpm_python_installed.stdout | default('')"
+  failed_when: rpm_python_installed.rc > 6
+
+- name: python/tasks/main.yml - install ius repo
+  tags: python
+  raw: yum clean all && yum install https://centos7.iuscommunity.org/ius-release.rpm -y
+  register: ius_just_installed
+  when:
+    - "'is not installed' in ius_installed.stdout | default('')"
+
+- name: python/tasks/main.yml - install python
+  tags: python
+  raw: yum install python36u python36u-setuptools python-setuptools python36u-pip python2-pip python36u-libs -y
+  when:
+    - (ius_installed.stdout|default('')|length>0) and ((ius_just_installed.stdout|default('')|length == 0) or ("'installed' in ius_just_installed.stdout|default('')"))

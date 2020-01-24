@@ -1,0 +1,31 @@
+- name: common/tasks/locale.yml - install required packages and generate locales
+  tags: locale
+  block:
+  - name: common/tasks/locale.yml - install locales package
+    package:
+      name: locales
+      state: installed
+  - name: common/tasks/locale.yml - generate locale en_US.UTF-8
+    locale_gen:
+      name: en_US.UTF-8
+      state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: common/tasks/locale.yml - install locales
+  tags: locale
+  package:
+    lock_timeout: 180
+    update_cache: yes
+    name: glibc-common
+    state: present
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: common/tasks/locale.yml - create /etc/locale.conf
+  tags: locale
+  copy:
+    content: |
+      LANGUAGE={{ system_settings_locale }}
+      LC_ALL={{ system_settings_locale }}
+      LANG={{ system_settings_locale }}
+      LC_TYPE={{ system_settings_locale }}
+    dest: /etc/locale.conf

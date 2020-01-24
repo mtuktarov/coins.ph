@@ -1,0 +1,12 @@
+- name: common/tasks/locale_timezone.yml - install tzdata
+  tags: timezone
+  package:
+    lock_timeout: 180
+    update_cache: yes
+    state: present
+    name: tzdata
+
+- name: common/tasks/locale_timezone.yml - set timezone to UTC
+  tags: timezone
+  timezone:
+    name: Europe/Moscow

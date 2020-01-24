@@ -1,0 +1,17 @@
+- include_tasks: hostname.yml
+  tags: hostname
+
+- include_tasks: locale.yml
+  tags: locale
+
+- include_tasks: timezone.yml
+  tags: timezone
+
+- include_tasks: basic_packages.yml
+  tags: basic_packages
+
+- include_tasks: upgrade_packages.yml
+  tags: upgrade
+
+- include_tasks: users.yml
+  tags: users

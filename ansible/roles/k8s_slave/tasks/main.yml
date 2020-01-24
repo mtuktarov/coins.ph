@@ -1,0 +1,45 @@
+---
+
+- name: k8s_slave/tasks/main.yml - Check if kubelet.conf exists
+  tags:
+    - k8s-slave
+  stat:
+    path: "/etc/kubernetes/kubelet.conf"
+  register: kubelet_conf
+
+- name: k8s_slave/tasks/main.yml - Join to cluster if needed
+  tags:
+    - k8s-slave
+  include_tasks: join.yml
+  when: not kubelet_conf.stat.exists
+
+- name: k8s_slave/tasks/main.yml - Enable and check kubelet service
+  tags:
+    - k8s-slave
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    state: started
+    enabled: yes
+
+# - name: k8s_slave/tasks/main.yml - configure firewalld 1/1
+#   tags:
+#     - k8s-slave
+#   firewalld:
+#     port: "{{ item }}"
+#     permanent: yes
+#     immediate: yes
+#     state: enabled
+#   with_items:
+#     - 10250/tcp
+#     - 10255/tcp
+#     - 8472/tcp
+#     - 30000-32767/tcp
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+# - name: k8s_slave/tasks/main.yml - configure firewalld 2/2
+#   firewalld:
+#     masquerade: yes
+#     state: enabled
+#     permanent: True
+#     immediate: yes

@@ -1,0 +1,4 @@
+[submodule "bundle/vim-sensible"]
+    path = mtuktarov.com
+    url = https://github.com/mtuktarov/mtuktarov.ru.git
+    branch = django-todo

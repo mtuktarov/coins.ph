@@ -1,0 +1,109 @@
+- name: k8s_install/tasks/iptables.yml - iptables flush filter
+  iptables:
+    chain: "{{ item }}"
+    flush: yes
+  with_items:  [ 'INPUT', 'FORWARD', 'OUTPUT' ]
+
+- name: k8s_install/tasks/iptables.yml - Allow new incoming SYN packets on TCP port 22 (SSH).
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "22"
+    jump: ACCEPT
+    comment: Accept new SSH connections.
+
+- name: k8s_install/tasks/iptables.yml - Set the policy for the OUTPUT chain to ACCEPT
+  iptables:
+    chain: OUTPUT
+    policy: ACCEPT
+
+- name: k8s_install/tasks/iptables.yml - allow incoming traffic on loopback interface
+  iptables:
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+
+- name: k8s_install/tasks/iptables.yml - Allow related and established connections
+  iptables:
+    chain: INPUT
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+  become: yes
+
+- name: k8s_install/tasks/iptables.yml - k8s ports
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ item }}"
+    jump: ACCEPT
+  with_items:
+    - 2379:2380
+    - 30000:32767
+    - 10250:10256
+    - 6443
+
+- name: k8s_install/tasks/iptables.yml - web ports ports
+  iptables:
+    chain: INPUT
+    protocol: tcp
+    destination_port: "{{ item }}"
+    jump: ACCEPT
+  with_items:
+    - 80
+    - 443
+
+- name: k8s_install/tasks/iptables.yml - Allow INCOMING from "{{ service_cidr }}" and "{{ pod_network_cidr }}"
+  iptables:
+    chain: INPUT
+    source: "{{ service_cidr }}"
+    jump: ACCEPT
+  with_items:
+    - "{{ service_cidr }}"
+    - "{{ pod_network_cidr }}"
+
+# - name: k8s_install/tasks/preinstall.yml - configure firewalld 1/3 - ports
+#   tags:
+#   - k8s_preinstall
+#   firewalld:
+#     port: "{{ item }}"
+#     permanent: True
+#     zone: public
+#     immediate: yes
+#     state: enabled
+#   with_items:
+#     - 6443/tcp
+#     - 2379-2380/tcp
+#     - 10250/tcp
+#     - 443/tcp
+#     - 10251/tcp
+#     - 10252/tcp
+#     - 10255/tcp
+#     - 8472/tcp
+#     - 8472/udp
+#     - 30000-32767/tcp
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+# - name: k8s_install/tasks/preinstall.yml - configure firewalld 2/3 - rich_rules
+#   tags:
+#   - k8s_preinstall
+#   firewalld:
+#     rich_rule: 'rule family="ipv4" source address="{{ item }}" accept'
+#     zone: public
+#     immediate: yes
+#     permanent: True
+#     state: enabled
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+#   with_items:
+#     - "{{ service_cidr }}"
+#     - "{{ pod_network_cidr }}"
+
+# - name: k8s_install/tasks/preinstall.yml - configure firewalld 3/3 - masquerade
+#   tags:
+#   - k8s_preinstall
+#   firewalld:
+#     zone: public
+#     masquerade: True
+#     state: enabled
+#     permanent: True
+#     immediate: yes
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'

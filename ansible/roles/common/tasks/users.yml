@@ -1,0 +1,56 @@
+- name: common/tasks/users.yml - create default groups
+  tags: users
+  group:
+    name: "{{ item.group | default('users') }}"
+  with_items:
+    - "{{ default_groups }}"
+
+- name: common/tasks/users.yml - add users
+  tags: users
+  user:
+    name:            "{{ item.user }}"
+    shell:           "{{ item.shell }}"
+    groups:
+      - "{{ item.groups | default(default_group) }}"
+      - "{{ default_group| default('users') }}"
+    home:            "{{ item.home }}"
+    comment:         "{{ item.comment }}"
+    state:           "{{ item.state }}"
+    ssh_key_comment: "{{ item.user }}"
+    createhome:      yes
+    append:          yes
+    force:           yes
+    remove:          yes
+  with_items:
+    - "{{ users }}"
+  when:
+    - item.state is defined
+    - item.state == 'present'
+
+- name: common/tasks/users.yml - manage ssh keys for users
+  tags: users
+  authorized_key:
+    user:   "{{ item.user }}"
+    key:    "{{ item.key }}"
+  with_items:
+    - "{{ users }}"
+  when:
+    - item.state is defined
+    - item.state == 'present'
+    - item.key is defined
+
+- name: common/tasks/users.yml - manage sudoers admins
+  tags: users
+  lineinfile:
+    dest:       /etc/sudoers.d/99-admins
+    line:       "{{ item.user }}  ALL=(ALL) NOPASSWD: ALL"
+    validate:   'visudo -cf %s'
+    state:      "{{ item.state }}"
+    create:     yes
+  with_items:
+    - "{{ users }}"
+  when:
+    - item.is_admin is defined
+    - item.is_admin == True
+    - item.state is defined
+    - item.state == 'present'

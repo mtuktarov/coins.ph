@@ -1,0 +1,119 @@
+# Default values for blogd.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: mtuktarov/blogd
+  tag: todo
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: regcred
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+## String to partially override postgresql.fullname template (will maintain the release name)
+##
+# nameOverride:
+
+## String to fully override postgresql.fullname template
+##
+# fullnameOverride:
+
+django:
+  # switch Django to debug mode
+  debug: False
+
+  # Db connection properties
+  db:
+    host: postgresql
+    name: blogd
+    user: blogd
+    password:
+    # set this value to TRUE to run migrations upon pod launch
+    automaticMigrations: false
+
+  # Django will automatically create superuser on the first migration run
+  superuser:
+    name: admin
+    email: admin@mtuktarov.com
+    password:
+
+  # Django will create a django.contrib.sites.models.Site object on the first migration run
+  # with the domain and name options equal to the below. It is an important option since
+  # template links are widely generated reading domain value
+  siteDomainName: example.vom
+
+  # Django uses memcache for caching. Setting the below to true changes it to DummyCache
+  disableCache: false
+
+  # Django will uses the email config below to send emails
+  smtp_email:
+    host: default.domain.example
+    port: 465
+    user: test
+    password: test
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    # kubernetes.io/ingress.class: nginx
+    # kubernetes.io/tls-acme: "true"
+  hosts:
+    - host:
+      paths: ['/']
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  limits:
+    cpu: 256m
+    memory: 256Mi
+  requests:
+    cpu: 256m
+    memory: 256Mi
+
+nginxResources:
+  limits:
+    cpu: 128m
+    memory: 128Mi
+  requests:
+    cpu: 128m
+    memory: 128Mi
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

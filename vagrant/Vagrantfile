@@ -1,0 +1,71 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+# sudo vim /Library/Preferences/Parallels/parallels_dhcp_leases
+# 10.211.55.56="1575028957,1800,001c4237f9ba,01001c4237f9ba"
+# 10.211.55.57="1574984166,1800,001c42cb9bc0,01001c42cb9bc0"
+# 10.211.55.58="1574984163,1800,001c4280ce06,01001c4280ce06"
+servers=[
+  {
+    :hostname => "kuber-master",
+    :mem => "2048",
+    :mac_address => "00:1C:42:CB:9B:C0",
+    :ip_address => "10.211.55.57/24",
+    :username => "root",
+    :cpus => 2,
+    :linked_clone => true,
+    :vm_box => "centos7",
+    :network_adapter => "virtio",
+    :ansible_playbook => "../ansible/playbooks/pb-k8s-master.yml",
+    :ansible_inventory => "../ansible/inventories/k8s.ini"
+  },
+  {
+    :hostname => "kuber-slave",
+    :mem => "2048",
+    :mac_address => "00:1C:42:80:CE:06",
+    :ip_address => "10.211.55.58/24",
+    :username => 'root',
+    :cpus => 2,
+    :linked_clone => true,
+    :vm_box => "centos7",
+    :network_adapter => "virtio",
+    :ansible_playbook => "../ansible/playbooks/pb-k8s-slave.yml",
+    :ansible_inventory => "../ansible/inventories/k8s.ini"
+  }
+ # ,
+ # {
+ #   :hostname => "test",
+ #   :mem => "2048",
+ #   :mac_address => "00:1C:42:37:F9:BA",
+ #   :ip_address => "10.211.55.56/24",
+ #   :username => 'root',
+ #   :cpus => 2,
+ #   :linked_clone => true,
+ #   :vm_box => "centos7",
+ #   :network_adapter => "virtio",
+ #   :ansible_playbook => "../ansible/playbooks/pb-docker.yml",
+ #   :ansible_inventory => "../ansible/inventories/k8s.ini"
+#  }
+]
+
+Vagrant.configure("2") do |config|
+    servers.each do |machine|
+        config.vm.define machine[:hostname] do |node|
+            node.ssh.username = machine[:username]
+            node.vm.box = machine[:vm_box]
+            node.vm.synced_folder ".", "/vagrant", disabled: true
+            node.vm.provider "parallels" do |prl|
+                prl.name = machine[:hostname]
+                prl.linked_clone = machine[:linked_clone]
+                prl.memory = machine[:mem]
+                prl.cpus = machine[:cpus]
+                prl.customize ["set", :id, "--device-set", "net0", "--mac", "#{machine[:mac_address]}"]
+            end
+            node.vm.provision "ansible" do |ansible|
+                ansible.raw_arguments = []
+                ansible.limit = machine[:hostname]
+                ansible.inventory_path = machine[:ansible_inventory]
+                ansible.playbook = machine[:ansible_playbook]
+            end
+        end
+    end
+end

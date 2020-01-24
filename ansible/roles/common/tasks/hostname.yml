@@ -1,0 +1,23 @@
+- name: common/tasks/hostname.yml - write hostname to /etc/hostname
+  tags: hostname
+  copy:
+    content: "{{ inventory_hostname | default(fqdn) }}"
+    dest: /etc/hostname
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: common/tasks/hostname.yml - issue hostname command
+  tags: hostname
+  hostname:
+    name: "{{ inventory_hostname | default(fqdn) }}"
+  when: ansible_hostname != inventory_hostname
+
+- name: common/tasks/hostname.yml - add hostname entries to hosts file (localhost)
+  tags: hostname
+  lineinfile:
+    dest: /etc/hosts
+    regexp: "^127.0.0.1"
+    line: "{{ item }}"
+    state: present
+   with_items: "{{ hosts_lines }}"

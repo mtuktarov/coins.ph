@@ -1,0 +1,40 @@
+- name: common/tasks/upgrade_packages.yml - update and upgrade apt packages
+  tags: upgrade
+  apt:
+    upgrade: yes
+    update_cache: yes
+    cache_valid_time: 3600
+    autoremove: yes
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: common/tasks/upgrade_packages.yml - upgrade RHEL/CentOS packages
+  tags: upgrade
+  block:
+  - name: common/tasks/upgrade_packages - check if kernel updates are available
+    shell: yum check-update kernel
+    args:
+      warn: false
+    ignore_errors: True
+    register: kernel_update_available
+
+  - name: common/tasks/upgrade_packages.yml - upgrade all packages
+    yum:
+      name: '*'
+      state: latest
+      update_cache: True
+    register: packages_updated
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: k8s_install/tasks/preinstall.yml - Reboot server
+  tags: upgrade
+  reboot:
+  when:
+    - kernel_update_available.rc != 0
+    - packages_updated is defined
+
+- name: k8s_install/tasks/preinstall.yml - Delete old kernels
+  tags: upgrade
+  shell: "rpm -q kernel | grep -v `uname -r` | grep -v `/sbin/grubby --default-kernel | sed -r 's#^/boot/vmlinuz-##'` | xargs rpm -e || true"
+  when:
+    - "0 != kernel_update_available.rc | default('')"
+    - packages_updated is defined

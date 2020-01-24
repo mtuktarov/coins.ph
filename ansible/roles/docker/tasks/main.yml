@@ -1,0 +1,126 @@
+- name: docker/tasks/main.yml - install repository for docker and required packages
+  tags: docker
+  block:
+  - name: docker/tasks/main.yml - add yum repository
+    yum_repository:
+      name: docker
+      enabled: yes
+      description: Docker CE Stable - $basearch
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey: https://download.docker.com/linux/centos/gpg
+      file: docker
+      baseurl: https://download.docker.com/linux/centos/7/$basearch/stable
+  - name: docker/tasks/main.yml - install packages
+    package:
+      lock_timeout: 180
+      state: installed
+      update_cache: yes
+      name:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+
+- name: docker/tasks/main.yml - install repository for docker and required packages
+  tags: docker
+  block:
+  - name: docker/tasks/main.yml - add an apt signing key for repository
+    apt_key:
+      url: https://download.docker.com/linux/ubuntu/gpg
+      state: present
+  - name: docker/tasks/main.yml - install repository for docker
+    apt_repository:
+      repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+      state: present
+  - name: docker/tasks/main.yml - install packages
+    tags: docker
+    package:
+      state: latest
+      update_cache: yes
+      name:
+        - docker-ce
+        - python-pip
+        - python-openssl
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: docker/tasks/main.yml for daemon config
+  tags:
+    - docker
+    - k8s
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  with_items:
+    - /etc/docker
+    - /etc/systemd/system/docker.service.d
+
+- name: docker/tasks/main.yml - copy daemon config
+  tags:
+    - docker
+    - k8s
+  copy:
+    src: "daemon.json"
+    dest: "/etc/docker/daemon.json"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: docker/tasks/main.yml - install pip docker package
+  tags: docker
+  pip:
+    name: "docker==3.4.1"
+  when: ansible_distribution == 'Ubuntu'
+
+- name: docker/tasks/main.yml - get list of admin users
+  tags: docker
+  shell: "awk '{print $1}' /etc/sudoers.d/99-admins"
+  register: admin_users
+  ignore_errors: true
+
+- name: docker/tasks/main.yml - set group to admin users
+  tags: docker
+  user:
+    name: "{{ item.user }}"
+    groups: docker
+    append: true
+  with_items:
+    - "{{ users }}"
+  when: item.is_admin
+
+- name: "docker/tasks/main.yml - Create {{ item.home }}/.docker direcotry"
+  tags: docker
+  file:
+    path: "{{ item.home }}/.docker"
+    state: directory
+    mode: '1700'
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+  with_items:
+    - "{{ users }}"
+  when: item.is_admin
+
+- name: docker/tasks/main.yml - copy client config
+  tags: docker
+  copy:
+    src: "client-config.json"
+    dest: "{{ item.home }}/.docker/config.json"
+    owner: "{{ item.user }}"
+    group: "{{ item.user }}"
+    mode: '0600'
+  with_items:
+    - "{{ users }}"
+  when: item.is_admin
+
+- name: docker/tasks/main.yml - reset ssh connection to allow user changes to affect 'current login user'
+  tags: docker
+  meta: reset_connection
+
+- name: docker/tasks/main.yml - enable and start docker service
+  tags: docker
+  systemd:
+    name: docker
+    state: started
+    enabled: yes

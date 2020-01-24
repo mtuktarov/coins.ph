@@ -1,0 +1,21 @@
+users:
+  - { user: mtuktarov,
+      state: present,
+      is_admin: True,
+      groups: wheel,
+      home: /home/mtuktarov,
+      comment: Marat Tuktarov,
+      shell: /bin/bash,
+      key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDB8Zb9ihQCEHpuRmNI+yZMUjkxp9pwAuf3+uIYyjo7x2A2WPuIzWD36S5AuGN1JQR/HN7ZWK77BBY3E5qAOwXbB5dPbvL/BNJBHQeik6eyFRrgIHD8r5Dh/xyDWcIAeT5J+7WuGfTJjN49Wq2Z7fNttdx+Si6632g/5UO8IU3HGk+d48Zd+7ZHSXw1NNOMj+E0Uc1BjOXVvIA0aZMvAKIXSags5bfNf/EUgGJdHG/dEbGit8LTwAbc4U4ot6o+4I57t5VaQPF9nMuv/J83EtS5Bx8LNUKGLGFy5kd5Eh1RKWS/t5McWP2MpV+wmeFyFJk+BeVmhATa9fXWAs+26Cop mtuktarov
+    }
+  - { user: kuber-guy,
+      state: present,
+      is_admin: True,
+      groups: wheel,
+      home: /home/kuber-guy,
+      comment: Kuber Guy,
+      shell: /bin/bash,
+      key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDEfuTnSlt56qYxeMLZ2g0DIcdpuTnXwx1rPuHpIh0LsNJ+juBhHUvPjxbTYVv/s1xbVzaPEoEp2HT6L4EB59KEL8XB6YdcyjAwJAsl2dFBzQq4c1oFCAIXvSFYzmP4sjJkdnKuJF75pzUGALIlkxZIZRydeG1DppfeWVnCtcBBE/qW8xEFTV37fFMUp0RdHTQwcK2wdlS0aE5DjmGlFQbML8ywS0w6rd3IfalhbS6YuWCcyO/w1TYouJs0UXa6icuRhfKa815XVIeIC5sMpGuvGcSlWAPTc38xi558sBMa8LkpM67aiwaiWruKUfk3QfWZSdET62L+dptI4107lsp1 kuber-guy
+    }
+docker_user: d3611340
+docker_token: 7eab8faf-4506-412c-9352-83a006104f14

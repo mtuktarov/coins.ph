@@ -1,0 +1,69 @@
+---
+- name: k8s_helm/common/tasks/main.yml - Create tmp directory
+  tags:
+  - k8s-helm
+  - k8s-master
+  file:
+    path: "{{ tmp_dir }}"
+    state: directory
+    mode: 0755
+
+- name: k8s_helm/common/tasks/main.yml - Check if Helm is installed
+  tags:
+  - k8s-helm
+  - k8s-master
+  shell: command -v helm >/dev/null 2>&1
+  register: helm_exists
+  ignore_errors: yes
+
+- name: k8s_helm/common/tasks/main.yml - Install Helm
+  tags:
+  - k8s-helm
+  - k8s-master
+  block:
+    - name: "Get Helm installer"
+      get_url:
+        url: https://raw.githubusercontent.com/helm/helm/master/scripts/get
+        dest: "{{ tmp_dir }}/get_helm.sh"
+        mode: 0755
+
+    - name: k8s_helm/common/tasks/main.yml - Run the installer
+      shell: "{{ tmp_dir }}/get_helm.sh"
+
+  when: helm_exists.rc > 0
+
+- name: k8s_helm/common/tasks/main.yml - Copy yaml file
+  tags:
+  - k8s-helm
+  - k8s-master
+  copy:
+    src: "rbac-config.yml"
+    dest: "{{ tmp_dir }}/rbac-config.yml"
+    mode: 0644
+
+- name: k8s_helm/common/tasks/main.yml - RBAC configuration
+  tags:
+  - k8s-helm
+  - k8s-master
+  shell: "kubectl apply -f {{ tmp_dir }}/rbac-config.yml"
+
+- name: k8s_helm/common/tasks/main.yml - Init Helm
+  tags:
+  - k8s-helm
+  - k8s-master
+  shell: "helm init --service-account tiller"
+
+- name: k8s_helm/common/tasks/main.yml - Update Helm repo
+  tags:
+  - k8s-helm
+  - k8s-master
+  shell: "helm repo update"
+
+- name: k8s_helm/common/tasks/main.yml - Clean-up
+  tags:
+  - k8s-helm
+  - k8s-master
+  file:
+    path: "{{ tmp_dir }}"
+    state: absent
+  ignore_errors: yes

@@ -1,0 +1,8 @@
+- import_playbook: pb-common.yml
+- name: pb-docker.yml
+  hosts: all
+  gather_facts: yes
+  become: True
+  roles:
+    - { role: docker }
+    - { role: k8s_install }

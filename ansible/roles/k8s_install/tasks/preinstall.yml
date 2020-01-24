@@ -1,0 +1,94 @@
+- name: k8s_install/tasks/preinstall.yml - Load kernel modules
+  tags: k8s_preinstall
+  modprobe:
+    name: "{{ item.name }}"
+    state: present
+    params: "{{ item.params|default('') }}"
+  with_items: "{{ kernel_modules }}"
+
+- name: k8s_install/tasks/preinstall.yml - Add kernel modules to autoload file
+  tags: k8s_preinstall
+  lineinfile:
+    create: yes
+    dest: "{{ kernel_modules_conf_dir }}/{{ kernel_load_file }}"
+    line: "{{ item.name }}"
+    state: present
+    owner: root
+    group: root
+    mode: 0644
+  with_items: "{{ kernel_modules }}"
+
+- name: k8s_install/tasks/preinstall.yml - Disable system swap
+  tags: k8s_preinstall
+  shell: "swapoff -a"
+  when: ansible_swaptotal_mb > 0
+
+- name: Rk8s_install/tasks/preinstall.yml - Remove current swaps from fstab
+  tags: k8s_preinstall
+  lineinfile:
+    dest: /etc/fstab
+    regexp: '(?i)^([^#][\S]+\s+(none|swap)\s+swap.*)'
+    line: '# \1'
+    backrefs: yes
+    state: present
+
+- name: k8s_install/tasks/preinstall.yml - Disable swappiness and pass bridged IPv4 traffic to iptable's chains
+  tags: k8s_preinstall
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+  with_items:
+    - { name: 'vm.swappiness', value: '0' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+
+- name: k8s_install/tasks/preinstall.yml - Create service drop-in directory
+  tags: k8s_preinstall
+  file:
+    path: /etc/systemd/system/kubelet.service.d/
+    state: directory
+    owner: "{{ ansible_user | default(ansible_user_id) }}"
+    group: "{{ ansible_user | default(ansible_user_id) }}"
+    mode: 0755
+
+- name: k8s_install/tasks/preinstall.yml - Copy kubeadm conf to drop-in directory
+  template: src=20-extra-args.conf.j2 dest=/etc/systemd/system/kubelet.service.d/20-extra-args.conf
+
+- name: k8s_install/tasks/preinstall.yml -  Put SELinux in permissive mode, logging actions that would be blocked.
+  tags: k8s_preinstall
+  selinux:
+    policy: targeted
+    state: permissive
+
+- name: k8s_install/tasks/preinstall.yml - configure files dir
+  tags:
+    - k8s_preinstall
+    - docker
+    - k8s
+  file:
+    path: /var/kuber/jenkins/
+    state: directory
+    mode: '0777'
+
+- name: k8s_install/tasks/preinstall.yml - configure iptables
+  tags:
+  - k8s
+  - k8s_preinstall
+  - iptables
+  include_tasks: iptables.yml
+
+- name: k8s_install/tasks/preinstall.yml - Reboot server
+  tags: k8s_preinstall
+  reboot:
+  when: reboot  | default(False) == True
+
+- name: k8s_install/tasks/preinstall.yml - configure directories for pv
+  tags: k8s_preinstall
+  shell: |
+    DISK_UUID=pv_disk
+    for i in $(seq 1 3); do
+      sudo mkdir -p /mnt/${DISK_UUID}/vol${i} /mnt/disks/${DISK_UUID}_vol${i}
+      sudo mount --bind /mnt/${DISK_UUID}/vol${i} /mnt/disks/${DISK_UUID}_vol${i}
+      echo /mnt/${DISK_UUID}/vol${i} /mnt/disks/${DISK_UUID}_vol${i} none bind 0 0 | sudo tee -a /etc/fstab
+    done

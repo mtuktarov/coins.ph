@@ -1,0 +1,7 @@
+- import_playbook: pb-setup_python.yml
+- name: pb-k8s-slave.yml
+  hosts: k8s_slave
+  gather_facts: yes
+  become: True
+  roles:
+    - { role: k8s_slave }

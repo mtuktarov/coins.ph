@@ -1,0 +1,168 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "blogd.fullname" . }}
+  labels:
+    {{- include "blogd.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "blogd.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "blogd.selectorLabels" . | nindent 8 }}
+    spec:
+      volumes:
+      - name: {{ .Chart.Name }}-nginx
+        configMap:
+          name: {{ .Chart.Name }}
+          items:
+            - key: nginx.conf
+              path: nginx.conf
+      - name: shared-data
+        emptyDir: {}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+      - name: init-storage
+        image: alpine/git
+        command: ['sh', '-c', 'chown -R 101:101 /opt/blogd && git clone --single-branch --branch django-todo https://github.com/mtuktarov/mtuktarov.ru.git /opt/blogd && mkdir -p /opt/blogd/sockets && mkdir -p /opt/blogd/media && mkdir -p /opt/blogd/uploads && chown -R 101:101 /opt/ && chmod 775 -R /opt']
+        volumeMounts:
+        - name: shared-data
+          mountPath: /opt/blogd/
+          readOnly: false
+
+      serviceAccountName: {{ include "blogd.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+          - name: DJANGO_DEBUG
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoDebug
+          - name: DJANGO_DB_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoDbHost
+          - name: DJANGO_DB_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoDbName
+          - name: DJANGO_DB_USER
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoDbUser
+          - name: DJANGO_DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoDbPassword
+          - name: AUTOMATIC_MIGRATIONS
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoAutomaticMigrations
+          - name: DJANGO_SITE_DOMAIN_NAME
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoSiteDomainName
+          - name: DJANGO_SU_NAME
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoSuName
+          - name: DJANGO_SU_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoSuPassword
+          - name: DJANGO_SU_EMAIL
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoSuEmail
+          - name: DJANGO_DISABLE_CACHE
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoDisableCache
+          - name: DJANGO_EMAIL_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoEmailHost
+          - name: DJANGO_EMAIL_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: blogd
+                key: djangoEmailPort
+          - name: DJANGO_EMAIL_USER
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoEmailUser
+          - name: DJANGO_EMAIL_PASS
+            valueFrom:
+              secretKeyRef:
+                name: blogd
+                key: djangoEmailPassword
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - name: shared-data
+            mountPath: /opt/blogd/
+            readOnly: false
+
+        - name: nginx
+          image: nginx:stable-alpine
+          imagePullPolicy: Always
+          ports:
+          - name: http
+            containerPort: 80
+            protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /200ok
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+               path: /200ok
+               port: 80
+          resources:
+            {{- toYaml .Values.nginxResources | nindent 12 }}
+          volumeMounts:
+          - name: {{ .Chart.Name }}-nginx
+            mountPath: /etc/nginx/conf.d/
+            readOnly: false
+          - name: shared-data
+            mountPath: /opt/blogd/
+            readOnly: false
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+    {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

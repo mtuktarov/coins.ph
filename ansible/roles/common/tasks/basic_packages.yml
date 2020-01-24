@@ -1,0 +1,57 @@
+# - name: common/tasks/basic_packages.yml - remove native git
+#   tags: basic_packages
+#   package:
+#     name: git
+#     state: absent
+#     lock_timeout: 180
+#   when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: common/tasks/basic_packages.yml - install packages
+  tags: basic_packages
+  package:
+    state: installed
+    lock_timeout: 180
+    update_cache: yes
+    name:
+        - tzdata
+        - vim
+        - htop
+        - screen
+        - dstat
+        - iotop
+        - pigz
+        - pbzip2
+        - unzip
+        - zip
+        - jq
+        - mc
+        - nmap
+        - fail2ban
+        - sudo
+        - tmux
+        - curl
+        - bind-utils
+        - net-tools
+
+- name: common/tasks/basic_packages.yml - install RHEL/CentOS specific packages
+  tags: basic_packages
+  package:
+    state: installed
+    lock_timeout: 180
+    name:
+        - git222-all
+        - glibc-common
+  when: ansible_distribution == 'CentOS' or ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: common/tasks/basic_packages_ubuntu.yml - install Ubuntu/Debian specific packages
+  tags: basic_packages
+  package:
+    state: installed
+    update_cache: yes
+    name:
+        - python-pip
+        - locales
+        - python-distutils-extra
+        - apt-transport-https
+        - git
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'

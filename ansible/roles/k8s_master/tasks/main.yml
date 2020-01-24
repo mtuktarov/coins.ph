@@ -1,0 +1,71 @@
+---
+
+- name: k8s_master/tasks/main.yml - Check if kubeadm has already run
+  tags:
+  - k8s-init-master
+  - k8s-master
+  stat:
+    path: "/etc/kubernetes/pki/ca.key"
+  register: kubeadm_ca
+
+- name: k8s_master/tasks/main.yml - Init cluster if needed
+  tags:
+  - k8s-init-master
+  - k8s-master
+  include_tasks: init.yml
+  when: not kubeadm_ca.stat.exists
+  run_once: yes
+
+- name: k8s_master/tasks/main.yml - Enable and check kubelet service
+  tags:
+  - k8s-init-master
+  - k8s-master
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    state: started
+    enabled: yes
+  register: started_kubelet
+
+- name: k8s_master/tasks/main.yml - Copy config file
+  tags:
+  - k8s-init-master
+  - k8s-master
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ lookup('env', 'HOME') }}/.kube/config"
+    flat: yes
+  run_once: yes
+  ignore_errors: yes
+
+- name: k8s_network/tasks/main.yml - Create Kubernetes network directory
+  file:
+    path: /etc/kubernetes/net
+    state: directory
+
+- name: k8s_network/tasks/main.yml - "Copy flannel YAML files"
+  template:
+    src: "{{ item }}"
+    dest: "/etc/kubernetes/net/{{ item | basename | regex_replace('\\.j2','') }}"
+  with_fileglob:
+    - ../templates/flannel*.j2
+
+- name: k8s_master/tasks/main.yml - "Check flannel daemonset is working"
+  tags:
+  - k8s-network
+  - k8s-master
+  shell: kubectl --kubeconfig={{ kubeadmin_config }} get ds --all-namespaces | grep flannel
+  delegate_to: "{{ master_ip }}"
+  run_once: true
+  register: check_net
+  ignore_errors: true
+  changed_when: false
+
+- name: k8s_master/tasks/main.yml - "Create flannel network daemonset"
+  tags:
+  - k8s-network
+  - k8s-master
+  command: "kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/2140ac876ef134e0ed5af15c65e414cf26827915/Documentation/kube-flannel.yml"
+  delegate_to: "{{ master_ip }}"
+  run_once: true
+  when: check_net is failed

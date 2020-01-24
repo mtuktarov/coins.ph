@@ -1,0 +1,47 @@
+- name: k8s_install/tasks/main.yml - k8s preinstall tasks
+  tags:
+  - k8s
+  - k8s_preinstall
+  include_tasks: preinstall.yml
+
+- name: k8s_install/tasks/main.yml - install repository for k8s and required packages
+  tags: k8s
+  block:
+  - name: k8s_install/tasks/main.yml - add an apt signing key for repository
+    apt_key:
+      url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+      state: present
+  - name: k8s_install/common/tasks/main.yml - add apt repository
+    apt_repository:
+      repo: "deb https://apt.kubernetes.io/ kubernetes-xenial main"
+      state: present
+  when: ansible_distribution == 'Ubuntu' or ansible_distribution == 'Debian'
+
+- name: k8s_install/tasks/main.yml - add yum repository, configure firewalld
+  tags: k8s
+  block:
+  - name: k8s_install/tasks/main.yml - add yum repository
+    yum_repository:
+      name: Kubernetes
+      enabled: yes
+      description: Kubernetes official repo
+      gpgcheck: yes
+      repo_gpgcheck: yes
+      gpgkey: "https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg"
+      file: k8s.repo
+      baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+
+- name: k8s_install/tasks/main.yml - install packages
+  tags: k8s
+  package:
+    state: installed
+    update_cache: yes
+    name: "{{ k8s_pkgs }}"
+
+
+- name: k8s_install/tasks/main.yml - enable kubelet service
+  tags: k8s
+  systemd:
+    name: kubelet
+    daemon_reload: yes
+    enabled: yes
